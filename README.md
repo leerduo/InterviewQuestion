@@ -6,6 +6,11 @@
 水平有限，有错误请提出来。
 
 
+# Android常见的问题
+
+标签（空格分隔）： 移动开发
+
+---
 > * 常见算法问题的 Java 实现
 
 
@@ -1285,3 +1290,359 @@ android studio的Gradle插件默认会启用Manifest Merger Tool，若Library项
 ----------
 
 > 以上2015-07-26更新
+
+
+----------
+
+
+
+> * HashMap有哪些考察点
+
+1.1. 减少碰撞
+我们知道HashMap的时间复杂度取决于O(N//buckets)，所以为了尽量少挂链表，获取hashCode的算法一定要高效；在JDK8中引入了红黑二叉树，当链表元素达到8的时候，把链表动态转成树，可以把最差时间复杂度从O(N)降到O(logN)
+
+1.2. 选好初始容量
+resize需要遍历所有的数组并重新计算Hash，所以初始容量确定了，就可以减少损失。
+
+比如你有1000个数据 x * 0.75 = 1000 ,x = 1333，又HashMap中都是按照2^N排序的，所以应该选择2048作为初始容量。
+
+1.3. 数据结构的选择
+当数据非常多，对搜索要求高的情况下，考虑使用树。
+
+
+[HashMap的实现与优化](http://www.jianshu.com/p/e54047b2b563)
+[Java面试各种基础坑](http://www.jianshu.com/p/3d58495157e6)
+
+
+----------
+
+
+> * mipmap文件夹和drawable文件夹的区别
+
+
+    它只是用来放启动图标的
+    它的好处就是，你只用放一个mipmap图标，它就会给你各种版本（比如平板，手机）的apk自动生成相应分辨率的图标，以节约空间。
+
+
+----------
+
+
+> * 当ListView一直向下滑动时加载了很多图片，这时候如果再向上滑动，怎么处理之前已经加载好的图片？另外，不对加载好的图片处理的话一直向下滑会不会造成OOM
+
+如果你用框架的话，比如Picasso,Glide，就不用管它了......
+
+这些框架会自动回收不可见的View，所以不用担心OOM，我极端的测试过1000张 400x272 的图片，都没有卡。
+
+
+加载过的图片可以缓存在有缓存容量限制的内存中，如使用LruCache，同时也可以缓存在设置有缓存容量限制sdcard中。取图片时统一先向内存缓存中获取，内存缓存中获取不到则向sdcard缓存中获取，还是获取不到再进行下载或读取，获取成功后放入缓存。以上过程均在线程中进行。
+这样在图片不断加载的过程中，始终能占用的内存只有缓存上限大小，超过缓存上限的图片将被释放。
+
+线程的话可以设置线程池，并设置线程池大小和执行策略（如FILO）
+
+
+
+[如何去准备Android技术面试](http://www.jianshu.com/p/19afef329f65)
+
+
+----------
+
+
+> * 离开应用界面一段较长的时间后再回到应用，易出现崩溃的原因 
+
+[不要在Android的Application对象中缓存数据!](http://zmywly8866.github.io/2014/12/26/android-do-not-store-data-in-the-application-object.html)
+
+
+----------
+
+
+> * Android中的HelloWorld程序为何在一运行时就申请了多于10MB的堆上内存
+
+
+
+个人意见是在build.prop中分配的默认大小照成的
+```
+cat build.prop | grep  dalvik 
+```
+也就是无论你写多简单的程序，系统开始都会分配16m的堆大小。如果你手动GC后，自然又把空闲内存回收了。
+
+以下是魅族4.4的配置
+```
+dalvik.vm.heapsize=36m
+dalvik.vm.heapstartsize=16m
+dalvik.vm.heapgrowthlimit=256m
+dalvik.vm.heapsize=512m
+dalvik.vm.heaptargetutilization=0.75
+dalvik.vm.heapminfree=4m
+dalvik.vm.heapmaxfree=16m
+```
+
+
+----------
+
+
+> * ?android:attr 和 ?attr/ 分别代表什么意思 有何区别
+
+?attr表示引用的是当前主题中的资源。
+?android:attr/表示引用的是android系统中的一些资源。
+
+
+----------
+
+
+
+> * andorid应用第二次登录实现自动登录
+
+我来说一个实际案例的流程吧。前置条件是`所有用户相关接口都走https`，`非用户相关列表类数据走http`。
+1. 第一次登陆getUserInfo里带有一个长效token，该长效token用来判断用户是否登陆和换取短token
+2. 把长效token保存到SharedPreferences
+3. 接口请求用长效token换取短token，短token服务端可以根据你的接口最后一次请求作为标示，超时时间为一天。
+4. 所有接口都用短效token
+5. 如果返回短效token失效，执行3再直接当前接口
+6. 如果长效token失效（用户换设备或超过两周），提示用户登录。
+
+
+----------
+
+> * 当一个全屏Activity A进入到带有ActionBar（或ToolBar）的非全屏Activity B时，怎么解决Status Bar闪动的问题？
+
+
+1. 给Activity在清单文件里设置全屏；
+2. 在该Activity执行Finish之前，执行下面语句：
+```java
+getWindow().setFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN, WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+```
+这样在进入其他Activity就不会有Status Bar闪动的问题。
+
+
+[Switching-from-Full-Screen-to-Non-Full-Screen-Smoothly-in-Android ](http://chrisrisner.com/Switching-from-Full-Screen-to-Non-Full-Screen-Smoothly-in-Android)
+
+
+----------
+
+
+> * 关于增量升级
+
+
+[ 浅析android应用增量升级 ](http://blog.csdn.net/hmg25/article/details/8100896)
+
+
+----------
+
+
+> * Android里面为什么要设计出Bundle而不是直接用Map结构
+
+之前在[博客](http://chenfuduo.me)中写过。
+
+Map里实现了Serializable接口，而在Bundle实现了Parcelable的接口
+
+Bundle 父类 `BaseBundle `内部确实有个 `ArrayMap<String, Object>` 类型的 mMap 成员。
+我觉得之所以封装为 Bundle 应该和 Android 特有的 `Parcelable` 序列化方式有关（比 JDK 自带的 Serializable 效率高）。通过源码可以看到内部各种 put 和 get 方法都调用了这个 unparcel 方法。
+
+
+----------
+
+
+> * 简述MVC模式以及在你项目中的应用
+
+a.模型（model）对象：是应用程序的主体部分，所有的业务逻辑都应该写在该层。
+b.视图（view）对象：是应用程序中负责生成用户界面的部分。也是在整个mvc架构中用户唯一可以看到的一层，接收用户的输入，显示处理结果。
+c.控制器（control）对象：是根据用户的输入，控制用户界面数据显示及更新model对象状态的部分
+
+ - View：自定义View或ViewGroup，负责将用户的请求通知Controller，并根据model更新界面；
+ - Controller：Activity或者Fragment，接收用户请求并更新model；
+ - Model：数据模型，负责数据处理相关的逻辑，封装应用程序状态，响应状态查询，通知View改变，对应Android中的datebase、SharePreference等。
+
+
+----------
+
+
+> * Android有什么便捷的方式实现activity变暗的效果
+
+```java
+  /**
+     * 调整窗口的透明度
+     * @param from>=0&&from<=1.0f
+     * @param to>=0&&to<=1.0f
+     * 
+     * */
+    private void dimBackground(final float from, final float to) {
+        final Window window = getWindow();
+        ValueAnimator valueAnimator = ValueAnimator.ofFloat(from, to);
+        valueAnimator.setDuration(500);
+        valueAnimator.addUpdateListener(new AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                WindowManager.LayoutParams params = window.getAttributes();
+                params.alpha = (Float) animation.getAnimatedValue();
+                window.setAttributes(params);
+            }
+        });
+
+        valueAnimator.start();
+    }
+```
+
+
+----------
+
+
+> * Android ndk主要在哪些场景下需要使用？有没有哪些坑？ 请具体讲一下。
+
+应用场景:1.加密 2.音视频解码,图像操作等等 3.安全相关,比如hook注入 4.增量更新 5.游戏开发
+[ndk使用的注意事项官方文档都有提到](http://developer.android.com/training/articles/perf-jni.html)
+
+
+----------
+
+
+
+> *  ViewPager+Fragment取消预加载（延迟加载） 
+
+[ ViewPager+Fragment取消预加载、延迟加载 ](http://blog.csdn.net/myatlantis/article/details/42643733)
+
+
+----------
+
+
+> * 介绍一下Android线程间通信有哪几种方式
+
+1. 共享内存（变量）；
+2. 文件，数据库；
+3. Handler；
+4. Java里的wait()，notify()，notifyAll()
+
+
+----------
+
+
+> * Android应用中验证码登陆都有哪些实现方案 
+
+验证码应该只有两种获取方式：
+从服务器端获取图片，
+通过短信服务，将验证码发送给客户端这两种。
+
+
+> * 谈谈你对 Application 类的理解
+
+[Don't Store Data in the Application Object](http://www.developerphil.com/dont-store-data-in-the-application-object/)
+
+ - 继承自 ContextWrapper，可用于保存应用全局变量，或者通过全局 Context 注册广播等等（生命周期不受 Activity
+   等影响）；
+ - 实现了 ComponentCallback2 接口，可以在
+   onConfigurationChanged（屏幕方向改变等）、onLowMemory/onTrimMemory（内存不足）时调用组件的相关回调；
+ - 提供了注册 ActivityLifecycleCallbacks 和 ComponentCallbacks 的 public
+   方法，可以用于监控应用内组件的状态（比如实现类似 Umeng 的统计页面停留时长和访问路径等）；
+
+
+----------
+
+
+> * 定位项目中，如何选取定位方案，如何平衡耗电与实时位置的精度？
+
+方案1：
+考虑到应用中有多处地方需要使用位置请求，在Application类中开始定位，Application持有一个全局的公共位置对象，然后隔一定时间自动刷新位置，每次刷新成功都把新的位置信息赋值到全局的位置对象，然后每个需要使用位置请求的地方都使用全局的位置信息进行请求。
+该方案好处：请求的时候无需再反复定位，每次请求都使用全局的位置对象，节省时间。
+该方案弊端：耗电，每隔一定时间自动刷新位置，对电量的消耗比较大。
+
+方案2：按需定位，每次请求前都进行定位。这样做的好处是比较省电，而且节省资源，但是请求时间会变得相对较长。
+
+
+----------
+
+
+> * 安卓面试笔试题目
+
+[Android interview questions](http://androidquestions.quora.com/Android-interview-questions)
+[Android interview questions for 2-5 yrs experienced](http://androidquestions.quora.com/Android-interview-questions-for-2-5-yrs-experienced)
+[阿里2015实习生-客户端笔试题目解析](http://www.jianshu.com/p/027cbf1cb6f6)
+[鹅厂2015实习生-客户端笔试题目解析](http://www.jianshu.com/p/b1fcb6c73b28)
+[大量Android英文面试题 ](http://skillgun.com/android/interview-questions-and-answers)
+
+
+----------
+
+
+> * 求助各位大神，怎么得到手机的唯一标识【注意：不是所有的手机都能得到IMEI及Mac地址】或者其他的折中方式
+
+1. 首先尝试读取IMEI、Mac地址、CPU号等物理信息（有不少工具可以修改IMEI）；
+2. 如果均失败，可以自己生成UUID然后保存到文件（文件也可能被篡改或删除）；
+
+
+[【Android】设备标识](http://www.cnblogs.com/lqminn/p/4204855.html)
+
+
+----------
+
+> * 在Android的MVP架构中，使用了什么设计模式
+
+
+    Observer模式：通过EventBus实现订阅者，发布者的功能，实现 Model与 Presenter 的交互。
+    Proxy模式：View保持对Presenter的引用，通过Presenter代理，进行交互操作。
+
+
+----------
+
+> * 自定义View执行invalidate()方法，为什么有时候不会回调onDraw
+
+
+
+
+    自定义一个view时，重写onDraw。
+    调用view.invalidate(),会触发onDraw和computeScroll()。前提是该view被附加在当前窗口上
+    view.postInvalidate(); //是在非UI线程上调用的
+
+    自定义一个ViewGroup，重写onDraw。
+    onDraw可能不会被调用，原因是需要先设置一个背景(颜色或图)。
+    表示这个group有东西需要绘制了，才会触发draw，之后是onDraw。
+    因此，一般直接重写dispatchDraw来绘制viewGroup
+
+    自定义一个ViewGroup
+    dispatchDraw会调用drawChild
+
+
+----------
+
+> * ContentProvider和sql的区别
+
+ContentProvider的主要还是用于数据共享，其可以对Sqlite，SharePreferences，File等进行数据操作用来共享数据。而sql的可以理解为数据库的一门语言，可以使用它完成CRUD等一系列的操作
+
+
+----------
+
+
+> * Android性能测试中都有哪些好的测试工具或者测试方法
+
+内存分析:MAT,DDMS,Leakcanary(Square)
+静态分析:Find Bugs,Lint
+压力测试:Monkey
+自动化测试: UiAutomator,MonkeyRunner,Rubotium,Athrun(淘宝)
+
+
+----------
+
+
+> *  防止重复发送网络请求
+
+点击activity上的一个按钮，发送网络请求，在网络比较慢的情况下，用户可能会继续去点击按钮，这个时候，发送其他无谓的请求，不知道大家是怎么处理这类问题来拦截？
+
+
+
+    HTTP header中加入max-age，这样某个固定的时间内都将返回empty body，当然这个方法是死的，把时间完全限制了，这个方法回掉也会同样要执行多次。
+    还有个晕招，就是直接设置按钮的clickable为false，或者使用progressbar，类似于楼主的方法，比如点赞的场景。
+    使用Map的话，在回掉的时候，还是需要回收HashMap的，维护Map还不如只维护一个boolean呢。
+
+Volley中如果开了缓存的话, 相同的请求同时只会有一个去真正的请求, 后续都走缓存, 虽然不会请求多次, 但是回调是会执行多次的, 和这个需求不match
+
+
+----------
+
+> *如果让你设计一个基于MVC或者MVP设计模式的Android APP架构，你会怎么做
+
+
+![架构][1]
+
+
+----------
+
+
+  [1]: https://cloud.githubusercontent.com/assets/4861905/8716659/e7200e4e-2bc5-11e5-8490-c13d73a82dde.png
