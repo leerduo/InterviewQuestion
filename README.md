@@ -1,5 +1,8 @@
 # InterviewQuestion
-整理的常见的问题   http://chenfuduo.me
+
+工作原因，不再更新。
+
+整理的常见的问题   http://chenfuduo.cn
 
 [整理来自这里](https://github.com/android-cn/android-discuss)
 
